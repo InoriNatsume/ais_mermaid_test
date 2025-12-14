@@ -1,7 +1,22 @@
 import { GoogleGenAI } from "@google/genai";
 import { DiagramType } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Declare process for TypeScript to prevent "Cannot find name 'process'" error
+// The actual value is replaced by Vite at build time via define
+declare const process: {
+  env: {
+    API_KEY?: string;
+  }
+};
+
+const apiKey = process.env.API_KEY;
+export const isAIEnabled = !!(apiKey && apiKey.length > 0 && apiKey !== 'undefined');
+
+let ai: GoogleGenAI | null = null;
+if (isAIEnabled) {
+  // @ts-ignore - Ignore potential type mismatch during strict compilation
+  ai = new GoogleGenAI({ apiKey: apiKey as string });
+}
 
 const cleanResponse = (text: string): string => {
   // Remove markdown code blocks if present
@@ -18,6 +33,10 @@ const cleanResponse = (text: string): string => {
 };
 
 export const generateMermaidCode = async (prompt: string, type: DiagramType = 'Auto'): Promise<string> => {
+  if (!ai || !isAIEnabled) {
+    throw new Error("AI features are disabled. API Key is missing.");
+  }
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -42,6 +61,10 @@ export const generateMermaidCode = async (prompt: string, type: DiagramType = 'A
 };
 
 export const fixMermaidCode = async (brokenCode: string, errorMessage: string): Promise<string> => {
+  if (!ai || !isAIEnabled) {
+    throw new Error("AI features are disabled. API Key is missing.");
+  }
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',

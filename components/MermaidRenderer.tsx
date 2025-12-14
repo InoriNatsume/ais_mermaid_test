@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
-import { ZoomIn, ZoomOut, Maximize, Move } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 
 interface MermaidRendererProps {
   code: string;

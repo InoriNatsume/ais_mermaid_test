@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Split, Play, Bug, Wand2, Download, Code2, LayoutTemplate } from 'lucide-react';
+import { Split, Play, Bug, Wand2, Code2, LayoutTemplate } from 'lucide-react';
 import MermaidRenderer from './components/MermaidRenderer';
 import Console from './components/Console';
-import { generateMermaidCode, fixMermaidCode } from './services/gemini';
+import { generateMermaidCode, fixMermaidCode, isAIEnabled } from './services/gemini';
 import { LogEntry, LogLevel, ViewMode, DiagramType } from './types';
 
 // Initial sample code
@@ -10,11 +10,7 @@ const INITIAL_CODE = `graph TD
     A[Start] --> B{Is it working?}
     B -- Yes --> C[Great!]
     B -- No --> D[Debug]
-    D --> E{Try AI Fix?}
-    E -- Yes --> F[Click Fix Button]
-    E -- No --> G[Check Console]
-    F --> B
-    G --> B`;
+    D -- Manual Fix --> C`;
 
 const DIAGRAM_TYPES: DiagramType[] = [
   'Auto',
@@ -49,6 +45,15 @@ const App: React.FC = () => {
       details
     }]);
   }, []);
+
+  // Initial log to indicate mode
+  useEffect(() => {
+    if (!isAIEnabled) {
+      addLog(LogLevel.INFO, "System Ready (Offline Mode)", "AI features are disabled because no API Key was found. Editor is fully functional.");
+    } else {
+      addLog(LogLevel.INFO, "System Ready", "AI features are enabled.");
+    }
+  }, [addLog]);
 
   const handleMermaidError = useCallback((errorMsg: string) => {
     setError(errorMsg);
@@ -103,12 +108,14 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200 shadow-sm z-20">
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-indigo-600 rounded-lg text-white">
+          <div className={`p-2 rounded-lg text-white ${isAIEnabled ? 'bg-indigo-600' : 'bg-slate-600'}`}>
             <LayoutTemplate className="w-5 h-5" />
           </div>
           <div>
             <h1 className="text-lg font-bold text-slate-800 tracking-tight">Mermaid Studio</h1>
-            <p className="text-xs text-slate-500">AI-Powered Diagram Editor</p>
+            <p className="text-xs text-slate-500">
+              {isAIEnabled ? 'AI-Powered Diagram Editor' : 'Visual Diagram Editor'}
+            </p>
           </div>
         </div>
 
@@ -138,32 +145,36 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          <button
-            onClick={() => setShowPromptInput(!showPromptInput)}
-            className="flex items-center space-x-2 px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg transition-colors font-medium text-sm border border-indigo-200"
-            disabled={isProcessing}
-          >
-            <Wand2 className="w-4 h-4" />
-            <span>Generate</span>
-          </button>
-          
-          <button
-            onClick={handleFix}
-            disabled={!error || isProcessing}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors font-medium text-sm border ${
-              error 
-                ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' 
-                : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed'
-            }`}
-          >
-            <Bug className="w-4 h-4" />
-            <span>Fix with AI</span>
-          </button>
+          {isAIEnabled && (
+            <>
+              <button
+                onClick={() => setShowPromptInput(!showPromptInput)}
+                className="flex items-center space-x-2 px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg transition-colors font-medium text-sm border border-indigo-200"
+                disabled={isProcessing}
+              >
+                <Wand2 className="w-4 h-4" />
+                <span>Generate</span>
+              </button>
+              
+              <button
+                onClick={handleFix}
+                disabled={!error || isProcessing}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors font-medium text-sm border ${
+                  error 
+                    ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' 
+                    : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed'
+                }`}
+              >
+                <Bug className="w-4 h-4" />
+                <span>Fix with AI</span>
+              </button>
+            </>
+          )}
         </div>
       </header>
 
       {/* AI Prompt Input Overlay */}
-      {showPromptInput && (
+      {showPromptInput && isAIEnabled && (
         <div className="bg-white border-b border-indigo-100 p-4 animate-in slide-in-from-top-2">
           <div className="max-w-4xl mx-auto flex flex-col sm:flex-row gap-3">
              <select
@@ -232,12 +243,16 @@ const App: React.FC = () => {
                   <h3 className="text-sm font-semibold text-red-800">Syntax Error Detected</h3>
                   <p className="text-xs text-red-600 mt-1 font-mono break-all">{error.substring(0, 150)}{error.length > 150 ? '...' : ''}</p>
                 </div>
-                <button 
-                  onClick={handleFix}
-                  className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded transition-colors"
-                >
-                  Auto-Fix
-                </button>
+                {isAIEnabled ? (
+                  <button 
+                    onClick={handleFix}
+                    className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded transition-colors"
+                  >
+                    Auto-Fix
+                  </button>
+                ) : (
+                   <span className="text-xs text-red-400 italic">Check syntax manually</span>
+                )}
               </div>
             )}
           </div>
