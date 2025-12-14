@@ -1,0 +1,5 @@
+{
+  "name": "Mermaid Flowchart Studio",
+  "description": "A powerful Mermaid.js editor and visualizer with AI-powered generation and debugging capabilities.",
+  "requestFramePermissions": []
+}
